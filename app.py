@@ -1,47 +1,39 @@
-
 import joblib
 import pandas as pd
-from flask import Flask, request, jsonify
+import streamlit as st
 
 # Load the trained model
 model = joblib.load('random_forest_model.pkl')
 
-app = Flask(__name__)
+# Title of the app
+st.title("Placement Prediction App")
 
-@app.route('/predict', methods=['POST'])
-def predict():
+# Input fields (replace these with your actual features)
+st.subheader("Enter Candidate Details:")
+
+# Example input fields; replace/add as per your training features
+internship_exp = st.selectbox("Internship Experience", ["Yes", "No"])
+gpa = st.number_input("GPA", min_value=0.0, max_value=10.0, step=0.01)
+skills_score = st.number_input("Skills Score", min_value=0, max_value=100, step=1)
+
+# Button to make prediction
+if st.button("Predict Placement"):
     try:
-        # Get data from the request
-        data = request.get_json(force=True)
-        df_predict = pd.DataFrame([data])
-
-        # Ensure the columns are in the same order as the training data
-        # This is a crucial step for correct predictions
-        # We need the original columns from X, excluding 'Placement'
-        # Assuming X_train columns are representative of the required input features
-        required_columns = X_train.columns.tolist()
-        df_predict = df_predict[required_columns]
-
-        # Preprocess the 'Internship_Experience' column if it exists
-        if 'Internship_Experience' in df_predict.columns:
-             df_predict['Internship_Experience'] = df_predict['Internship_Experience'].apply(lambda x: 1 if x == 'Yes' else 0)
-
+        # Create DataFrame for prediction
+        df_predict = pd.DataFrame([{
+            'Internship_Experience': 1 if internship_exp == 'Yes' else 0,
+            'GPA': gpa,
+            'Skills_Score': skills_score
+            # Add other features as required
+        }])
 
         # Make prediction
         prediction = model.predict(df_predict)
-
-        # Convert prediction to a readable format (e.g., 'Yes' or 'No' for Placement)
-        # Assuming the label encoder was used and 0=No, 1=Yes
         prediction_label = 'Yes' if prediction[0] == 1 else 'No'
 
-
-        return jsonify({'prediction': prediction_label})
+        # Show result
+        st.success(f"Placement Prediction: {prediction_label}")
 
     except Exception as e:
-        return jsonify({'error': str(e)})
+        st.error(f"Error: {str(e)}")
 
-if __name__ == '__main__':
-    # To run locally, you might use app.run(debug=True)
-    # For deployment, consider using a production-ready WSGI server like Gunicorn or uWSGI
-    # In Colab, you can use ngrok to expose your local server
-    app.run(host='0.0.0.0', port=5000)
